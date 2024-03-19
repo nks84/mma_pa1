@@ -15,6 +15,9 @@ class MusicGenreClassifier:
         self.genre_counts = {}
         self.bucket_genres = {}
         self.R = None
+    #todo
+    def set_config(self):
+        pass
 
     def get_shape(self, array):
         shape = array.shape
@@ -48,7 +51,11 @@ class MusicGenreClassifier:
         self.y_train = self.df_tracks_train['track']['genre_top']
         self.y_test = self.df_tracks_test['track']['genre_top']
         self.y_validation = self.df_tracks_validation['track']['genre_top']
-
+    # Parameter TODO things
+    # also parameter l wäre wie ich verstanden habe das hier das ganze quasi öfters läuft mit verschiedenen random matrix
+    # k ist jetzt immer der bucket size -> ist also wv ähnliche man suchen soll 
+    # m = metric
+    # also mabye ist net bucket ne majority sondern man sollte im bucket dann die änhlichsten suchen mit metric m und die dann ausgeben und dann schauen ob die dann auch die gleiche genre haben
     def train(self, bits=32):
         self.R = self.generate_random_matrix(bits, 518)
         X_train_zero_dot = np.dot(self.X_train, self.R.T)
@@ -75,6 +82,31 @@ class MusicGenreClassifier:
 
         for key, value in self.genre_counts.items():
             self.bucket_genres[key] = list(value.keys())[0]
+
+    def find_matching_songs(self, song_input, metric='euclid',cut = 10):
+        # find matching bucket for one single song and return the index of the matching songs
+        song = np.dot(song_input, self.R.T)
+        song = song > 0
+        song = song.astype(int)
+        hash_str = ''.join(song.astype(str))
+        matching_songs = self.buckets.get(hash_str)
+
+        # for all matching songs, calculate the distance to the input song
+        # sort the songs by distance and return the index of the songs
+        filterd_songs = []
+        for element in matching_songs:
+            distance = np.linalg.norm(self.X_train[element] - song_input)
+            filterd_songs.append((element, distance))
+        sorted_songs = sorted(filterd_songs, key=lambda x: x[1])
+        sorted_songs = sorted_songs[:cut]
+        return sorted_songs
+    
+    def test_matching_songs(self):
+        # test the function find_matching_songs
+        song = self.X_test[0]
+        matching_songs = self.find_matching_songs(song)
+        print(f"Matching songs: {matching_songs}")
+
 
     def evaluate_train_accuracy(self, majority_percentage=0.75):
         genre_majority = {}
@@ -162,10 +194,12 @@ class MusicGenreClassifier:
 
 # Example usage
 classifier = MusicGenreClassifier()
+
 classifier.load_data()
 classifier.preprocess_data()
-classifier.find_best_bits()
+#classifier.find_best_bits()
 classifier.train()
 classifier.evaluate_train_accuracy()
 classifier.evaluate_test_accuracy()
 classifier.evaluate_combined_accuracy()
+classifier.test_matching_songs()
