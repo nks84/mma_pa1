@@ -94,6 +94,8 @@ class MusicGenreClassifier:
         # for all matching songs, calculate the distance to the input song
         # sort the songs by distance and return the index of the songs
         filterd_songs = []
+        if matching_songs is None:
+            return []
         for element in matching_songs:
             distance = np.linalg.norm(self.X_train[element] - song_input)
             filterd_songs.append((element, distance))
@@ -138,6 +140,22 @@ class MusicGenreClassifier:
 
         accuracy = correct/len(majority_genres)
         print(f"Accuracy Test set: {accuracy}")
+        return accuracy
+    
+    def test_accuracy_with_find_matching_songs(self):
+        correct = 0
+        for i in range(len(self.X_test)):
+            song = self.X_test[i]
+            matching_songs = self.find_matching_songs(song)
+            if len(matching_songs) == 0:
+                continue
+            genres = []
+            for element in matching_songs:
+                genres.append(self.y_train.iloc[element[0]])
+            if max(set(genres), key=genres.count) == self.y_test.iloc[i]:
+                correct += 1
+        accuracy = correct/len(self.X_test)
+        print(f"Accuracy Test set advanced: {accuracy}")
         return accuracy
 
     def evaluate_combined_accuracy(self):
@@ -202,4 +220,4 @@ classifier.train()
 classifier.evaluate_train_accuracy()
 classifier.evaluate_test_accuracy()
 classifier.evaluate_combined_accuracy()
-classifier.test_matching_songs()
+classifier.test_accuracy_with_find_matching_songs()
