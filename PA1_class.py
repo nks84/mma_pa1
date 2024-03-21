@@ -56,17 +56,18 @@ class MusicGenreClassifier:
     # k ist jetzt immer der bucket size -> ist also wv ähnliche man suchen soll 
     # m = metric
     # also mabye ist net bucket ne majority sondern man sollte im bucket dann die änhlichsten suchen mit metric m und die dann ausgeben und dann schauen ob die dann auch die gleiche genre haben
-    def train(self, bits=32):
-        self.R = self.generate_random_matrix(bits, 518)
-        X_train_zero_dot = np.dot(self.X_train, self.R.T)
-        X_train_zero_dot = X_train_zero_dot > 0
-        X_train_zero_dot = X_train_zero_dot.astype(int)
+    def train(self, bits=32, amount_of_R=10):
+        for _ in range(amount_of_R):
+            self.R = self.generate_random_matrix(bits, 518)
+            X_train_zero_dot = np.dot(self.X_train, self.R.T)
+            X_train_zero_dot = X_train_zero_dot > 0
+            X_train_zero_dot = X_train_zero_dot.astype(int)
 
-        for i in range(len(X_train_zero_dot)):
-            hash_str = ''.join(X_train_zero_dot[i].astype(str))
-            if hash_str not in self.buckets.keys():
-                self.buckets[hash_str] = []
-            self.buckets[hash_str].append(i)
+            for i in range(len(X_train_zero_dot)):
+                hash_str = ''.join(X_train_zero_dot[i].astype(str))
+                if hash_str not in self.buckets.keys():
+                    self.buckets[hash_str] = []
+                self.buckets[hash_str].append(i)
 
         for key, value in self.buckets.items():
             self.genre_counts[key] = {}
