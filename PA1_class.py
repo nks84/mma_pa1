@@ -84,7 +84,7 @@ class MusicGenreClassifier:
         for key, value in self.genre_counts.items():
             self.bucket_genres[key] = list(value.keys())[0]
 
-    def find_matching_songs(self, song_input, metric='euclid',cut = 10):
+    def find_matching_songs(self, song_input, metric='cosine', cut=10):
         # find matching bucket for one single song and return the index of the matching songs
         song = np.dot(song_input, self.R.T)
         song = song > 0
@@ -94,13 +94,24 @@ class MusicGenreClassifier:
 
         # for all matching songs, calculate the distance to the input song
         # sort the songs by distance and return the index of the songs
-        filterd_songs = []
+        filtered_songs = []
+        distance = 0
         if matching_songs is None:
             return []
         for element in matching_songs:
-            distance = np.linalg.norm(self.X_train[element] - song_input)
-            filterd_songs.append((element, distance))
-        sorted_songs = sorted(filterd_songs, key=lambda x: x[1])
+            if metric == "euclid":
+                distance = np.linalg.norm(self.X_train[element] - song_input)
+            elif metric == "cosine":
+                # Calculate cosine similarity
+                dot_product = np.dot(self.X_train[element], song_input)
+                norm_song = np.linalg.norm(self.X_train[element])
+                norm_input = np.linalg.norm(song_input)
+                similarity = dot_product / (norm_song * norm_input)
+                # Convert similarity to distance (cosine distance)
+                distance = 1 - similarity
+            
+            filtered_songs.append((element, distance))
+        sorted_songs = sorted(filtered_songs, key=lambda x: x[1])
         sorted_songs = sorted_songs[:cut]
         return sorted_songs
     
@@ -258,12 +269,12 @@ def run():
     classifier = MusicGenreClassifier()
     classifier.load_data()
     classifier.preprocess_data()
-    classifier.train(32,5)
-    classifier.evaluate_combined_accuracy()
-    accuracy = classifier.test_accuracy_with_find_matching_songs(10)
-    print(f"Accuracy Test set advanced: {accuracy}")
+    classifier.train(128,5)
+    classifier.combined_accuracy_with_find_matching_songs()
+    accuracy = classifier.test_accuracy_with_find_matching_songs(20)
+    print(f"Accuracy Test set : {accuracy}")
 def run_best():
     classifier = MusicGenreClassifier()
     classifier.find_best_paramters()
     
-run_best()
+run()
