@@ -111,7 +111,7 @@ class MusicGenreClassifier:
         print(f"Matching songs: {matching_songs}")
 
 
-    def evaluate_train_accuracy(self, majority_percentage=0.75):
+    def evaluate_train_accuracy_old(self, majority_percentage=0.75):
         genre_majority = {}
         for key, value in self.genre_counts.items():
             for genre, count in value.items():
@@ -124,7 +124,7 @@ class MusicGenreClassifier:
         accuracy = sum(genre_majority.values())/len(self.buckets)
         print(f"Accuracy: {accuracy}")
 
-    def evaluate_test_accuracy(self):
+    def evaluate_test_accuracy_old(self):
         X_test_zero_dot = np.dot(self.X_test, self.R.T)
         X_test_zero_dot = X_test_zero_dot > 0
         X_test_zero_dot = X_test_zero_dot.astype(int)
@@ -143,11 +143,11 @@ class MusicGenreClassifier:
         print(f"Accuracy Test set: {accuracy}")
         return accuracy
     
-    def test_accuracy_with_find_matching_songs(self):
+    def test_accuracy_with_find_matching_songs(self,cut = 10):
         correct = 0
         for i in range(len(self.X_test)):
             song = self.X_test[i]
-            matching_songs = self.find_matching_songs(song)
+            matching_songs = self.find_matching_songs(song,cut)
             if len(matching_songs) == 0:
                 continue
             genres = []
@@ -156,7 +156,48 @@ class MusicGenreClassifier:
             if max(set(genres), key=genres.count) == self.y_test.iloc[i]:
                 correct += 1
         accuracy = correct/len(self.X_test)
-        print(f"Accuracy Test set advanced: {accuracy}")
+        #print(f"Accuracy Test set advanced: {accuracy}")
+        return accuracy
+    def validate_accuracy_with_find_matching_songs(self,cut = 10):
+        correct = 0
+        for i in range(len(self.X_validation)):
+            song = self.X_validation[i]
+            matching_songs = self.find_matching_songs(song,cut)
+            if len(matching_songs) == 0:
+                continue
+            genres = []
+            for element in matching_songs:
+                genres.append(self.y_train.iloc[element[0]])
+            if max(set(genres), key=genres.count) == self.y_validation.iloc[i]:
+                correct += 1
+        accuracy = correct/len(self.X_validation)
+        print(f"Accuracy Validation set advanced: {accuracy}")
+        return accuracy
+    
+    def combined_accuracy_with_find_matching_songs(self,cut = 10):
+        correct = 0
+        for i in range(len(self.X_validation)):
+            song = self.X_validation[i]
+            matching_songs = self.find_matching_songs(song,cut)
+            if len(matching_songs) == 0:
+                continue
+            genres = []
+            for element in matching_songs:
+                genres.append(self.y_train.iloc[element[0]])
+            if max(set(genres), key=genres.count) == self.y_validation.iloc[i]:
+                correct += 1
+        for i in range(len(self.X_test)):
+            song = self.X_test[i]
+            matching_songs = self.find_matching_songs(song,cut)
+            if len(matching_songs) == 0:
+                continue
+            genres = []
+            for element in matching_songs:
+                genres.append(self.y_train.iloc[element[0]])
+            if max(set(genres), key=genres.count) == self.y_test.iloc[i]:
+                correct += 1
+        accuracy = correct/(len(self.X_test)+len(self.X_validation))
+        print(f"Accuracy Validation+Test set advanced: {accuracy}")
         return accuracy
 
     def evaluate_combined_accuracy(self):
@@ -190,35 +231,39 @@ class MusicGenreClassifier:
         print(f"Accuracy Validation+Test set: {accuracy}")
         return accuracy
     
-    def find_best_bits(self, min_bits=8, max_bits=512, step=32):
-        best_bits = None
+    def find_best_paramters(self):
+        classifier = MusicGenreClassifier()
+        classifier.load_data()
+        classifier.preprocess_data()
+        
         best_accuracy = 0
+        best_bits = 0
+        best_amount_of_R = 0
+        best_k = 0
+        for bits in range(32, 512,10):
+            for amount_of_R in range(1, 35,5):
+                for k in range(2, 30,5):
+                    classifier.train(bits, amount_of_R)
+                    print(f"Bits: {bits}, Amount of R: {amount_of_R}, k: {k}")
+                    accuracy = classifier.test_accuracy_with_find_matching_songs(k)
+                    print (f"Accuracy: {accuracy}, Bits: {bits}, Amount of R: {amount_of_R}, k: {k}")
+                    if accuracy > best_accuracy:
+                        best_accuracy = accuracy
+                        best_bits = bits
+                        best_amount_of_R = amount_of_R
+                        best_k = k
+        print(f"Best accuracy: {best_accuracy}, Best bits: {best_bits}, Best amount of R: {best_amount_of_R}, Best k: {best_k}")
 
-        for bits in range(min_bits, max_bits + 1, step):
-            self.train(bits)
-            self.evaluate_train_accuracy()
-            accuracy = self.evaluate_test_accuracy()
-
-            if accuracy > best_accuracy:
-                best_bits = bits
-                best_accuracy = accuracy
-
-            print(f"Bits: {bits}, Accuracy: {accuracy}")
-
-        print(f"Best bits: {best_bits}, Best accuracy: {best_accuracy}")
-        # also print validation set accuracy
-        self.train(best_bits)
-        self.evaluate_combined_accuracy()
-        print(f"Best bits: {best_bits}, Best validation + test accuracy: {best_accuracy}")
-
-# Example usage
-classifier = MusicGenreClassifier()
-
-classifier.load_data()
-classifier.preprocess_data()
-#classifier.find_best_bits()
-classifier.train()
-classifier.evaluate_train_accuracy()
-classifier.evaluate_test_accuracy()
-classifier.evaluate_combined_accuracy()
-classifier.test_accuracy_with_find_matching_songs()
+def run():
+    classifier = MusicGenreClassifier()
+    classifier.load_data()
+    classifier.preprocess_data()
+    classifier.train(32,5)
+    classifier.evaluate_combined_accuracy()
+    accuracy = classifier.test_accuracy_with_find_matching_songs(10)
+    print(f"Accuracy Test set advanced: {accuracy}")
+def run_best():
+    classifier = MusicGenreClassifier()
+    classifier.find_best_paramters()
+    
+run_best()
