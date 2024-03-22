@@ -84,7 +84,7 @@ class MusicGenreClassifier:
         for key, value in self.genre_counts.items():
             self.bucket_genres[key] = list(value.keys())[0]
 
-    def find_matching_songs(self, song_input, metric='cosine', cut=10):
+    def find_matching_songs(self, song_input, metric='euclid', cut=10):
         # find matching bucket for one single song and return the index of the matching songs
         song = np.dot(song_input, self.R.T)
         song = song > 0
@@ -114,45 +114,7 @@ class MusicGenreClassifier:
         sorted_songs = sorted(filtered_songs, key=lambda x: x[1])
         sorted_songs = sorted_songs[:cut]
         return sorted_songs
-    
-    def test_matching_songs(self):
-        # test the function find_matching_songs
-        song = self.X_test[0]
-        matching_songs = self.find_matching_songs(song)
-        print(f"Matching songs: {matching_songs}")
 
-
-    def evaluate_train_accuracy_old(self, majority_percentage=0.75):
-        genre_majority = {}
-        for key, value in self.genre_counts.items():
-            for genre, count in value.items():
-                if count/len(self.buckets[key]) > majority_percentage:
-                    if genre not in genre_majority:
-                        genre_majority[genre] = 1
-                    else:
-                        genre_majority[genre] += 1
-
-        accuracy = sum(genre_majority.values())/len(self.buckets)
-        print(f"Accuracy: {accuracy}")
-
-    def evaluate_test_accuracy_old(self):
-        X_test_zero_dot = np.dot(self.X_test, self.R.T)
-        X_test_zero_dot = X_test_zero_dot > 0
-        X_test_zero_dot = X_test_zero_dot.astype(int)
-
-        majority_genres = []
-        for i in range(len(X_test_zero_dot)):
-            bucket_genre = self.bucket_genres.get(''.join(X_test_zero_dot[i].astype(str)))
-            majority_genres.append(bucket_genre)
-
-        correct = 0
-        for i in range(len(majority_genres)):
-            if majority_genres[i] == self.y_test.iloc[i]:
-                correct += 1
-
-        accuracy = correct/len(majority_genres)
-        print(f"Accuracy Test set: {accuracy}")
-        return accuracy
     
     def test_accuracy_with_find_matching_songs(self,cut = 10):
         correct = 0
@@ -211,36 +173,6 @@ class MusicGenreClassifier:
         print(f"Accuracy Validation+Test set advanced: {accuracy}")
         return accuracy
 
-    def evaluate_combined_accuracy(self):
-        X_validation_zero_dot = np.dot(self.X_validation, self.R.T)
-        X_validation_zero_dot = X_validation_zero_dot > 0
-        X_validation_zero_dot = X_validation_zero_dot.astype(int)
-
-        X_test_zero_dot = np.dot(self.X_test, self.R.T)
-        X_test_zero_dot = X_test_zero_dot > 0
-        X_test_zero_dot = X_test_zero_dot.astype(int)
-
-        majority_genres = []
-        for i in range(len(X_validation_zero_dot)):
-            bucket_genre = self.bucket_genres.get(''.join(X_validation_zero_dot[i].astype(str)))
-            majority_genres.append(bucket_genre)
-
-        for i in range(len(X_test_zero_dot)):
-            bucket_genre = self.bucket_genres.get(''.join(X_test_zero_dot[i].astype(str)))
-            majority_genres.append(bucket_genre)
-
-        correct = 0
-        for i in range(len(X_validation_zero_dot)):
-            if majority_genres[i] == self.y_validation.iloc[i]:
-                correct += 1
-
-        for i in range(len(X_test_zero_dot)):
-            if majority_genres[i] == self.y_test.iloc[i-len(X_validation_zero_dot)]:
-                correct += 1
-
-        accuracy = correct/len(majority_genres)
-        print(f"Accuracy Validation+Test set: {accuracy}")
-        return accuracy
     
     def find_best_paramters(self):
         classifier = MusicGenreClassifier()
