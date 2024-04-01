@@ -115,6 +115,7 @@ class MusicGenreClassifier:
         sorted_songs = sorted_songs[:cut]
         return sorted_songs
 
+
     
     def test_accuracy_with_find_matching_songs(self,cut = 10):
         correct = 0
