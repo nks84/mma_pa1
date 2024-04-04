@@ -241,9 +241,9 @@ def run():
     classifier = MusicGenreClassifier()
     classifier.load_data()
     classifier.preprocess_data()
-    classifier.train(128,5)
+    classifier.train(64,10)
     classifier.combined_accuracy_with_find_matching_songs()
-    accuracy = classifier.test_accuracy_with_find_matching_songs(20)
+    accuracy = classifier.test_accuracy_with_find_matching_songs(10)
     print(f"Accuracy Test set : {accuracy}")
 def run_best():
     classifier = MusicGenreClassifier()

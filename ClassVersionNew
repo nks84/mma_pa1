@@ -1,0 +1,207 @@
+#Imports
+
+import pandas as pd
+import numpy as np
+
+"""
+TODO: Do the indcies of X_train get mixed up? I think this
+"""
+# Load data
+df_tracks = pd.read_csv('tracks.csv', index_col=0, header=[0, 1])
+df_tracks = df_tracks[df_tracks['set']['subset'] == 'medium']
+df_features = pd.read_csv('features.csv', index_col=0, header=[0, 1, 2])
+
+# Filter by genres
+df_tracks = df_tracks[df_tracks['track']['genre_top'].isin(['Hip-Hop', 'Pop', 'Folk', 'Rock', 'Experimental', 'International', 'Electronic', 'Instrumental'])]
+
+# Split df_tracks into training, testing, and validation sets
+df_tracks_train = df_tracks[df_tracks.iloc[:, 30] == 'training']
+df_tracks_test = df_tracks[df_tracks.iloc[:, 30] == 'test']
+df_tracks_validation = df_tracks[df_tracks.iloc[:, 30] == 'validation']
+
+# Match features with tracks for training, testing, and validation
+df_features_train = df_features[df_features.index.isin(df_tracks_train.index)]
+df_features_test = df_features[df_features.index.isin(df_tracks_test.index)]
+df_features_validation = df_features[df_features.index.isin(df_tracks_validation.index)]
+
+
+# Create tuples of (data, indices) for each dataset
+train_data_with_indices = (df_features_train.values, df_features_train.index)
+test_data_with_indices = (df_features_test.values, df_features_test.index)
+validation_data_with_indices = (df_features_validation.values, df_features_validation.index)
+
+
+# Extract feature values
+X_train = df_features_train.values
+X_test = df_features_test.values
+X_validation = df_features_validation.values
+
+
+
+# Extract genre labels
+y_train = df_tracks_train['track']['genre_top']
+y_test = df_tracks_test['track']['genre_top']
+y_validation = df_tracks_validation['track']['genre_top']
+
+# Assuming train_data_with_indices is a tuple in the form (X_train, indices_train)
+X_debug, indices_debug = train_data_with_indices  # Unpack the tuple
+
+# Now, take the first 5 elements from both X_debug and indices_debug
+X_debug_first5 = X_debug[:5]
+indices_debug_first5 = indices_debug[:5]
+
+# If you need to recombine these into a tuple format for some operation
+debug_data_with_indices_first5 = (X_debug_first5, indices_debug_first5)
+
+
+# r_i = rowsize, r_j) = columsize
+def generate_random_matrix(r_i, r_j):
+    rij = np.random.choice([-1, 0, 1], size=(r_i, r_j), p=[1/6, 2/3, 1/6])
+    return np.sqrt(3) * rij
+
+"""
+The binary representations are of length l.
+And the number of hashtables we creat is equal to n.
+"""
+def hashtable_generator(data_indices_tuple, l=32, n=100):
+    X, indices = data_indices_tuple  # Unpack the tuple into data and indices
+    hash_tables_and_matrices = []
+    for _ in range(n):
+        buckets = {}
+        random_matrix = generate_random_matrix(l, X.shape[1])
+        X_dot = np.dot(X, random_matrix.T)
+        X_dot = X_dot > 0
+        X_dot = X_dot.astype(int)
+
+
+        for i in range(len(X_dot)):
+            hash_str = ''.join(X_dot[i].astype(str))
+            if hash_str not in buckets:
+                buckets[hash_str] = []
+            buckets[hash_str].append(indices[i])  # Use the original DataFrame index
+        
+        hash_tables_and_matrices.append((buckets, random_matrix))
+    
+    return hash_tables_and_matrices
+
+import numpy as np
+
+def find_similar_songs(song_input, hash_tables_and_matrices):
+    """
+    Finds and returns the original DataFrame indices of songs similar to the given input song.
+    
+    Parameters:
+    - song_input: The feature array of the song for which similar songs are to be found.
+    - hash_tables_and_matrices: A list of tuples, where each tuple contains a hash table (dictionary)
+      of song indices keyed by their hash, and the random matrix used to project the songs into hash space.
+    
+    Returns:
+    - A list of the original DataFrame indices of songs similar to the input song.
+    """
+    similar_songs_indices = set()
+
+    for buckets, random_matrix in hash_tables_and_matrices:
+        # Project the input song using the random matrix and generate its hash
+        song_projected = np.dot(song_input, random_matrix.T) > 0
+        song_hash = ''.join(song_projected.astype(int).astype(str))
+
+        # If the hash is found in the buckets, update the set of similar song indices
+        if song_hash in buckets:
+            similar_songs_indices.update(buckets[song_hash])
+
+    return list(similar_songs_indices)
+
+import numpy as np
+
+def compute_distances(train_data_with_indices, song_input, similar_songs_indices, metric="euclid", cut=10):
+    X_data, X_indices = train_data_with_indices  # Unpack the tuple
+    index_to_position = {index: pos for pos, index in enumerate(X_indices)}
+    
+    filtered_songs = []
+    if metric == "euclid":
+        for index in similar_songs_indices:
+            pos = index_to_position[index]
+            distance = np.linalg.norm(X_data[pos] - song_input)
+            filtered_songs.append((index, distance))
+    elif metric == "cosine":
+        for index in similar_songs_indices:
+            pos = index_to_position[index]
+            # Cosine similarity
+            dot_product = np.dot(X_data[pos], song_input)
+            norm_song = np.linalg.norm(X_data[pos])
+            norm_input = np.linalg.norm(song_input)
+            similarity = dot_product / (norm_song * norm_input)
+            
+            # Convert similarity to distance (cosine distance)
+            distance = 1 - similarity
+            filtered_songs.append((index, distance))
+    else:
+        raise ValueError("Invalid metric specified. Use 'euclid' or 'cosine'.")
+
+    sorted_songs = sorted(filtered_songs, key=lambda x: x[1])
+    if cut is not None:
+        sorted_songs = sorted_songs[:cut]
+    
+    return [index for index, _ in sorted_songs]
+
+import pandas as pd
+
+def determine_genre_by_majority_vote(song_indices, Y):
+    """
+    Determines the most common genre among the given song indices.
+
+    Parameters:
+    - song_indices: A list of indices for the songs.
+    - Y: A pandas Series where the index corresponds to song indices and the values to genres.
+
+    Returns:
+    - The genre that occurs most frequently among the given songs.
+    """
+
+    # Ensure Y is a pandas Series to use .loc efficiently
+    if not isinstance(Y, pd.Series):
+        raise ValueError("Y must be a pandas Series mapping song indices to genres.")
+
+    # Filter song_indices to ensure they are within the range of Y's index
+    valid_indices = [i for i in song_indices if i in Y.index]
+    
+    # Extract the genres for the given (valid) indices
+    genres = Y.loc[valid_indices]
+
+    # Use value_counts() to count and find the most common genre efficiently
+    majority_genre = genres.value_counts().idxmax()
+    
+    return majority_genre
+
+
+def find_song_genre(song, X_touples, Y, hashtables = None, l=32, n=20, cut=10, metric="euclid"):
+    if hashtables is None:
+        hashtables = hashtable_generator(X_touples, l, n)
+    similar_songs = find_similar_songs(song, hashtables)
+    nearest_neighbours = compute_distances(X_touples,song, similar_songs, metric, cut)
+    genre =  determine_genre_by_majority_vote(nearest_neighbours, Y)
+    
+    return genre
+
+def test_accuracy_with_find_matching_songs_multiple_optimized(times):
+   correct = 0
+   two_d_array = [[0 for _ in range(times)] for _ in range(len(X_test))]
+   hash_tables_and_matrices = [hashtable_generator(train_data_with_indices) for _ in range(times)]
+   x_value, y_value = train_data_with_indices
+
+   for _ in range(times):
+       print("iteration", _)
+       for i in range(len(X_test)):
+           two_d_array[i][_] = find_song_genre(x_value[i], train_data_with_indices, y_train, hash_tables_and_matrices[_])
+
+   for i in range(len(X_test)):
+       print("iteration part2")
+       genres = [two_d_array[i][_] for _ in range(times)]
+       if max(set(genres), key=genres.count) == y_test.iloc[i]:
+           correct += 1
+
+   accuracy = correct / len(X_test)
+   # print(f"Accuracy Test set advanced: {accuracy}")
+   return accuracy
+
+test_accuracy_with_find_matching_songs_multiple_optimized(2)
