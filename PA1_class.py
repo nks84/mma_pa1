@@ -114,8 +114,47 @@ class MusicGenreClassifier:
         sorted_songs = sorted(filtered_songs, key=lambda x: x[1])
         sorted_songs = sorted_songs[:cut]
         return sorted_songs
-
-
+    def find_matching_song_multiple(self, times, song_input):
+        found_categories = []
+        for _ in range(times):
+            print("doing it times ", _)
+            self.train()
+            local_categories = self.find_matching_songs(song_input)
+            if len(local_categories) == 0:
+                continue
+            genres = []
+            for element in local_categories:
+                genres.append(self.y_train.iloc[element[0]])
+            found_categories.append(max(set(genres), key=genres.count))
+            self.reset()
+        return max(set(found_categories), key=found_categories.count)
+            
+    def test_accuracy_with_find_matching_songs_multiple_optimized(self,times):
+        correct = 0
+        two_d_array = [[0 for _ in range(times)] for _ in range(len(self.X_test))]
+        for _ in range(times):
+            self.train()
+            for i in range(len(self.X_test)):
+                song = self.X_test[i]
+                genres = []
+                matching_songs = self.find_matching_songs(song,10)
+                if len(matching_songs) == 0:
+                    continue
+                for element in matching_songs:
+                     genres.append(self.y_train.iloc[element[0]])
+                two_d_array[i][_] = (max(set(genres), key=genres.count))
+            self.reset()
+        for i in range(len(self.X_test)):
+            genres = [two_d_array[i][_] for _ in range(times)]
+            if max(set(genres), key=genres.count) == self.y_test.iloc[i]:
+                correct += 1
+        accuracy = correct/len(self.X_test)
+        #print(f"Accuracy Test set advanced: {accuracy}")
+        return accuracy
+    def reset(self):
+        self.bucket_genres = {}
+        self.buckets = {}
+        self.genre_counts = {}
     
     def test_accuracy_with_find_matching_songs(self,cut = 10):
         correct = 0
@@ -210,4 +249,20 @@ def run_best():
     classifier = MusicGenreClassifier()
     classifier.find_best_paramters()
     
-run()
+def run_test():
+    classifier = MusicGenreClassifier()
+    classifier.load_data()
+    classifier.preprocess_data()
+    classifier.train(128,5)
+    accuracy_single = classifier.test_accuracy_with_find_matching_songs(10)
+    accuracy = classifier.test_accuracy_with_find_matching_songs_multiple()
+    print(f"Accuracy Test set multiple: {accuracy}")
+    print(f"Accuracy Test set single: {accuracy_single}")
+    
+def run_multi():
+    classifier = MusicGenreClassifier()
+    classifier.load_data()
+    classifier.preprocess_data()
+    accuracy = classifier.test_accuracy_with_find_matching_songs_multiple_optimized(10)
+    print(f"Accuracy Test set multiple: {accuracy}")
+run_multi()
