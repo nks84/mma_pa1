@@ -265,4 +265,4 @@ def run_multi():
     classifier.preprocess_data()
     accuracy = classifier.test_accuracy_with_find_matching_songs_multiple_optimized(10)
     print(f"Accuracy Test set multiple: {accuracy}")
-run_multi()
+run()
