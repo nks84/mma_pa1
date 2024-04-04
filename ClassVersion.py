@@ -91,6 +91,7 @@ class MusicGenreClassifier:
         song = song.astype(int)
         hash_str = ''.join(song.astype(str))
         matching_songs = self.buckets.get(hash_str)
+        print("matching songs", matching_songs)
 
         # for all matching songs, calculate the distance to the input song
         # sort the songs by distance and return the index of the songs
@@ -99,6 +100,7 @@ class MusicGenreClassifier:
         if matching_songs is None:
             return []
         for element in matching_songs:
+            print("element",element)
             if metric == "euclid":
                 distance = np.linalg.norm(self.X_train[element] - song_input)
             elif metric == "cosine":
