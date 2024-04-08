@@ -1,0 +1,21 @@
+## Comment on how the runtime of your approximate nearest neighbor algorithm in comparison to that of an exact nearest neighbor search. (You can estimate runtime forthe latter case.) If your implementation is slower than the exact search, speculate about possible reasons; comment on how these aspects might change when working with larger datasets.
+The runtime is better as I see it. As a exact NNS would look and compare all elements with a runtime of O(n) at least as you need to look at all the elements, however the operation that is preformaed with each of the elements is very expensive as the calculation of the exact metric can be really time extensive. 
+Our solution uses hashing and then only does the exact NNS for the elements which are in the same buckets, which is most of the times only a fraction of the total tracks. Therefore the runtime is much better and it is much better scalable for large datasets as the one here. I think the time for running our algorithm is also pretty quick and i guess the exact search would take at least 2-5x longer (however would most likly have a equal or better solution), however I think the tradeoff is not to large and worth it. 
+Furthermore the runtime improvement is even more relevant when looking at the nearest neighbor of mulitple items, as the hashing tables from the training sets can just be reused. This lead to a even bigger improvement in runtime I would think.
+
+
+## Report how you treat music tracks for which there are less than k other similar tracks.
+So if there are not enough close songs found in the bucket we have a mechanism in order to ensure that some meaningful songs are found. 
+The k is not to relevant here as we just cut of the similiar tracks list and provide the best k tracks. However in the case where there is only 0-2 similar tracks found we search other similar buckets in order to ensure that there are enough options for the distance calculation. This distance calculation then uses the most usefull ones, however if none or too few tracks are found the algorithm will not output the best result. Therefore we decided to implement this mechanism in order to ensure that more related tracks are found. We think that this is imporant as too few songs can make the prediction more random than it should be. This is also not really affected by the choosen k as we do not consider it usefull to use a k smaller than about 5, and we wanted to focus on the most common case here in order to have good solution with every k when there are less than 3 songs found.
+Then in the case where there are less than k tracks only fewer are povided from the compute_distances function, then the majority vote function which looks through all songs and uses the genre that is used more often only uses fewer songs, if there are not more aviable. We think this solution is the most easiest and also the best working solution. 
+I also want to shortly describe how the case works when not enough songs are found in a bucket. The solution we have is to look into very similar buckets with a similar name and get the songs from them and add them. In the next step where the exact distance is calculated between songs bad songs get thrown away anyway, however the function then has a better pool to choose songs from and as they are still similar we hope that an ideal solution / correct solution is found. 
+
+## How much time did you spend on the assignment (including the writing of the report; please provide an average for all of your team members)? This will not be used for grading.
+About 30 hours per person 
+so 60 in total for both us 
+Peer review not included
+
+## Who did what? This will not be used for grading. This part is meant for you as a group to reflect on whether you shared the workload fairly and make adjustments for the next assignment if you observe imbalances.
+Nenad did the hashtable generator in detail and looked into the theoretical part. 
+While Alex did all of the validation and test scores. 
+The rest was done pretty much together in equal parts. Through the entire development process of the notebook we often meet in order to improve the code together and also we both wrote together in most parts of the codde, also this report was written by both of us combined in collobaration.
