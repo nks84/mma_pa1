@@ -1,7 +1,7 @@
 # README How to use this Notebook
 
 ## Introduction
-This readme describes how to use the pa1.ipynb file in this directory. The report is also in the juypter notebook file 
+This readme describes how to use the pa1.ipynb file in this directory. The report is also in the juypter notebook file in the bottom and please make sure to have the csv files ready. 
 
 ## Getting Started
 To get started, make sure you have all the necessary Python imports installed. If any of the imports are missing, you can use the `pip install` command to install the required dependencies. Alternatively, you can use an IDE like PyCharm, which may assist you in resolving any dependency issues.
