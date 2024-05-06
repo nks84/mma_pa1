@@ -49,3 +49,16 @@ print("Accuracy of RFF SVM 2:", acc_rff_2)
 predictions_rff_imdb = predict_rff(X_test_imdb, w_rff_imdb, omega_imdb, b_imdb)
 acc_rff_3 = accuracy_rff(y_test_imdb, predictions_rff_imdb)
 print("Accuracy of RFF SVM 3:", acc_rff_3)
+
+
+##'linear', 'adagrad', '
+    '''
+    'linear': [
+        {'C': C, 'epochs': epochs, 'lr': lr, 'batch_size': bs} 
+        for C, epochs, lr, bs in itertools.product(C_values, epochs_values, lr_values, batch_size_values)
+    ],
+    'adagrad': [
+        {'C': C, 'epochs': epochs, 'lr': lr, 'batch_size': bs} 
+        for C, epochs, lr, bs in itertools.product(C_values, epochs_values, lr_values, batch_size_values)
+    ],
+    '''
